@@ -30,10 +30,6 @@ app.use(cors());
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/views/index.html')
-});
-
 app.get('/api/users', async (req, res) => {
   const users = await User.find({}).select('_id username');
   if(!users){
@@ -42,6 +38,11 @@ app.get('/api/users', async (req, res) => {
     res.json(users);
   }
 })
+
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/views/index.html')
+});
+
 
 
 app.post('/api/users', async (req, res) => {
@@ -80,13 +81,15 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
       })
 
       const exercise = await exerciseObj.save()
-      res.json({
-        _id: user._id,
+
+      return res.json({
         username: user.username,
         description: exercise.description,
         duration: exercise.duration,
-        date: new Date(exercise.date).toDateString()
+        date: new Date(exercise.date).toDateString(),
+        _id: user._id,
       })
+      
     }
 
   }catch(err){
@@ -108,6 +111,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
     res.send('User not found');
     return;
   }
+
   let dateObj = {};
   if(from){
     dateObj["$gte"] = new Date(from);
@@ -115,6 +119,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
   if(to){
     dateObj["$lte"] = new Date(to);
   }
+
   let filter = {
     user_id: id,
   }
@@ -123,13 +128,12 @@ app.get('/api/users/:_id/logs', async (req, res) => {
   
   }
 
-
   const exercises = await Exercise.find(filter).limit(+limit ?? 500);
 
   const log = exercises.map(e => ({
     description: e.description,
     duration: e.duration,
-    date: new Date(e.date).toDateString()
+    date: e.date.toDateString()
   }))
 
   res.json({
